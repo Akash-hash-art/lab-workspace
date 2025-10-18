@@ -12,6 +12,8 @@
     body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{max-width:1100px;margin:0 auto;padding:24px}
     h1{font-size:28px;margin:0 0 8px}
+    h2{margin:0 0 8px}
+    h3{margin:0 0 8px}
     .sub{color:var(--muted);margin-bottom:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#1a223a;color:#cfe}
@@ -28,6 +30,27 @@
     .signin{min-height:46px}
     .right{margin-left:auto}
     .hint{color:var(--muted);font-size:12px}
+
+    /* Make links inside cards clearly visible on dark background */
+    .card a,
+    .card a:link,
+    .card a:visited { color:#fff !important; text-decoration: underline; }
+    .card a:hover,
+    .card a:focus { color:#cfe !important; }
+
+    /* Busy button spinner */
+    button.busy { opacity:.7; pointer-events:none; position:relative; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button.busy::after {
+      content:"";
+      position:absolute;
+      right:10px; top:50%;
+      width:14px; height:14px; margin-top:-7px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,.35);
+      border-top-color:#fff;
+      animation:spin .8s linear infinite;
+    }
   </style>
 </head>
 <body>
@@ -61,7 +84,7 @@
       </div>
     </div>
     <div style="margin-top:10px" class="row">
-      <button class="primary" onclick="Workspace.upload()">Upload</button>
+      <button class="primary" onclick="Workspace.upload(this)">Upload</button>
       <div id="w-msg" class="hint"></div>
     </div>
   </div>
@@ -97,7 +120,7 @@
         </div>
       </div>
       <div style="margin-top:10px" class="row">
-        <button class="primary" onclick="Admin.createProject()">Create / Ensure Project</button>
+        <button class="primary" onclick="Admin.createProject(this)">Create / Ensure Project</button>
         <div id="aproj-msg" class="hint"></div>
       </div>
     </div>
@@ -124,8 +147,8 @@
         </div>
       </div>
       <div style="margin-top:10px" class="row">
-        <button class="primary" onclick="Admin.setMembership()">Assign membership</button>
-        <button onclick="Admin.syncPermissions()">Sync file permissions (project)</button>
+        <button class="primary" onclick="Admin.setMembership(this)">Assign membership</button>
+        <button onclick="Admin.syncPermissions(this)">Sync file permissions (project)</button>
         <div id="amem-msg" class="hint"></div>
       </div>
     </div>
@@ -136,7 +159,7 @@
 
 <script>
 /* ====== CONFIG ====== */
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhcbbOYMqntOfEiRp5ZfofPaVraWoiR5iVInjjzZ9KNTvvcwof-RetUYeAwAKnIknD/exec';   // <-- paste your Apps Script /exec URL
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhcbbOYMqntOfEiRp5ZfofPaVraWoiR5iVInjjzZ9KNTvvcwof-RetUYeAwAKnIknD/exec';   // Apps Script /exec URL
 const GOOGLE_CLIENT_ID = '360790259501-ch87im4qjptn7st4ic042buj7ihlvbud.apps.googleusercontent.com';
 
 /* ====== State ====== */
@@ -159,6 +182,25 @@ function _myProjectList(){
   if (appState.isAdmin) return [...appState.projects];
   const mine = new Set(appState.myMemberships.map(m => String(m.project_id)));
   return appState.projects.filter(p => mine.has(String(p.project_id)));
+}
+
+/* Spinner + text change while busy */
+async function runBusy(btn, fn, workingText){
+  let orig = '';
+  if (btn) {
+    orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('busy');
+    if (workingText) btn.innerHTML = workingText;
+  }
+  try { return await fn(); }
+  finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('busy');
+      if (workingText) btn.innerHTML = orig;
+    }
+  }
 }
 
 /* ====== Populate selects ====== */
@@ -186,7 +228,7 @@ function populateAdminProjectSelect(){
   sel.disabled = false;
 }
 
-/* ====== Backend POST ====== */
+/* ====== Backend POST (avoids CORS preflight) ====== */
 async function call(method, payload){
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
@@ -227,6 +269,7 @@ async function refreshState(){
     info.style.display = 'inline-block';
     info.innerHTML = `${escapeHtml(state.email)} ${state.isAdmin ? '<span class="pill" style="margin-left:8px;background:#234;">Admin</span>' : ''}`;
 
+    // Admin section only for admins
     document.getElementById('admin-card').style.display = state.isAdmin ? 'block' : 'none';
 
     populateWorkspaceProjects();
@@ -239,51 +282,50 @@ async function refreshState(){
 
 /* ====== Admin ====== */
 const Admin = {
-  async createProject(){
+  async createProject(btn){
     const project_id = document.getElementById('aproj-id').value.trim();
     const project_name = document.getElementById('aproj-name').value.trim();
     const msg = document.getElementById('aproj-msg');
     msg.textContent = '';
-    try{
+
+    await runBusy(btn, async () => {
       const r = await call('admin.createProject', { project_id, project_name });
       msg.textContent = 'Saved: ' + r.project_id;
       await refreshState();
-    }catch(e){
-      msg.textContent = 'Error: ' + e.message;
-    }
+    }, 'Creating…').catch(e => { msg.textContent = 'Error: ' + e.message; });
   },
-  async setMembership(){
+
+  async setMembership(btn){
     const project_id = document.getElementById('amem-proj').value.trim();
     const user_email = document.getElementById('amem-email').value.trim().toLowerCase();
     const level = Number(document.getElementById('amem-level').value);
     const msg = document.getElementById('amem-msg');
     msg.textContent = '';
     if (!project_id){ msg.textContent = 'Select a project.'; return; }
-    try{
+
+    await runBusy(btn, async () => {
       await call('admin.setMembership', { project_id, user_email, level });
       msg.textContent = 'Membership saved.';
       await refreshState();
-    }catch(e){
-      msg.textContent = 'Error: ' + e.message;
-    }
+    }, 'Assigning…').catch(e => { msg.textContent = 'Error: ' + e.message; });
   },
-  async syncPermissions(){
+
+  async syncPermissions(btn){
     const project_id = document.getElementById('amem-proj').value.trim();
     const msg = document.getElementById('amem-msg');
     msg.textContent = '';
     if (!project_id){ msg.textContent = 'Select a project first.'; return; }
-    try{
+
+    await runBusy(btn, async () => {
       const r = await call('admin.syncPermissions', { project_id });
       msg.textContent = `Synced ${r.count} files.`;
-    }catch(e){
-      msg.textContent = 'Error: ' + e.message;
-    }
+    }, 'Syncing…').catch(e => { msg.textContent = 'Error: ' + e.message; });
   }
 };
 
 /* ====== Workspace ====== */
 const Workspace = {
-  async upload(){
+  async upload(btn){
     const project_id = document.getElementById('w-proj').value.trim();
     const title = document.getElementById('w-title').value.trim();
     const inp = document.getElementById('w-file');
@@ -294,7 +336,7 @@ const Workspace = {
     if (!project_id){ msg.textContent = 'Select a project first.'; return; }
     if (!file){ msg.textContent = 'Choose a file to upload.'; return; }
 
-    try{
+    await runBusy(btn, async () => {
       const b64 = await fileToBase64(file);
       const r = await call('upload', {
         project_id, title, b64, mimeType: file.type, originalName: file.name
@@ -302,9 +344,7 @@ const Workspace = {
       msg.innerHTML = `Uploaded. <a href="${r.webViewLink}" target="_blank" rel="noopener">Open in Drive</a>`;
       inp.value = ''; document.getElementById('w-title').value = '';
       Workspace.loadDocs();
-    }catch(e){
-      msg.textContent = 'Error: ' + e.message;
-    }
+    }, 'Uploading…').catch(e => { msg.textContent = 'Error: ' + e.message; });
   },
 
   async loadDocs(){
