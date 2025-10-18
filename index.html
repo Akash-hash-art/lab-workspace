@@ -144,12 +144,15 @@ function wireEvents(){
 async function call(method, payload) {
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
-    mode: 'cors',
-    credentials: 'include',                           // << add this line
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    mode: 'cors',                                 // ok to keep
+    // IMPORTANT: no credentials here
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids preflight
     body: JSON.stringify({ method, idToken, payload })
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const t = await res.text().catch(()=> '');
+    throw new Error(`${res.status} ${res.statusText} ${t}`);
+  }
   return res.json();
 }
 
@@ -213,6 +216,7 @@ function showErr(e){ setHtml('msg','Error: '+(e?.message||e)); }
 </script>
 </body>
 </html>
+
 
 
 
