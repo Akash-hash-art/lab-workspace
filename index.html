@@ -141,17 +141,18 @@ function wireEvents(){
 }
 
 // ---------- Backend calls ----------
-async function call(method, payload = {}){
-  if (!idToken) throw new Error('Not signed in');
+async function call(method, payload) {
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // avoids CORS preflight
+    mode: 'cors',
+    credentials: 'include',                           // << add this line
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ method, idToken, payload })
   });
-  const data = await res.json();
-  if (data && data.ok === false) throw new Error(data.error || 'Server error');
-  return data;
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
 }
+
 
 async function getState(){ return call('getState'); }
 
@@ -212,6 +213,7 @@ function showErr(e){ setHtml('msg','Error: '+(e?.message||e)); }
 </script>
 </body>
 </html>
+
 
 
 
