@@ -1,223 +1,342 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lab Workspace (External UI)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Google Identity Services -->
+  <meta name="color-scheme" content="dark light" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root { --bg:#0b1020; --card:#151a2b; --text:#e9eef7; --muted:#a7b0c6; --accent:#4c8df6; }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
-    .wrap{max-width:960px;margin:0 auto;padding:18px}
-    h1{margin:0 0 8px 0}
-    .muted{color:var(--muted)}
-    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1a223a;color:#cfe}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    h1{font-size:28px;margin:0 0 8px}
+    .sub{color:var(--muted);margin-bottom:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .row>*{flex:1 1 220px}
-    .card{background:var(--card);border:1px solid #2a2f43;border-radius:14px;padding:16px;margin:12px 0}
-    label{display:block;margin:6px 0 4px;color:var(--muted)}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#1a223a;color:#cfe}
+    .card{background:var(--card);border:1px solid #2a2f43;border-radius:14px;padding:16px;margin:16px 0}
+    label{display:block;margin:8px 0 4px;color:var(--muted)}
     input,select,button{padding:10px;border-radius:10px;border:1px solid #2a2f43;background:#0f1426;color:var(--text)}
-    button.primary{background:var(--accent);border-color:transparent;color:#fff;cursor:pointer}
+    input[type="file"]{padding:8px}
+    button{cursor:pointer}
+    button.primary{background:var(--accent);border-color:transparent;color:#fff}
+    button:disabled{opacity:.6;cursor:not-allowed}
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid #2a2f43}
-    a{color:#cfe}
-    .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    #signin{min-height:44px}
-    #msg{white-space:pre-wrap}
+    .bar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .signin{min-height:46px}
+    .right{margin-left:auto}
+    .hint{color:var(--muted);font-size:12px}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Lab Workspace</h1>
-  <div class="muted">External UI (GitHub Pages) → Apps Script backend</div>
+  <div class="bar">
+    <div>
+      <h1>Lab Workspace</h1>
+      <div class="sub">External UI (GitHub Pages) → Apps Script backend</div>
+    </div>
+    <div id="signin" class="signin"></div>
+    <div id="user-info" class="pill" style="display:none"></div>
+  </div>
 
-  <div id="signin" class="card"></div>
-  <div id="who" class="muted"></div>
-  <div id="msg" class="muted"></div>
-
+  <!-- -------- Upload -------- -->
   <div class="card">
     <h2>Upload</h2>
     <div class="row">
-      <div><label>Project ID</label><input id="w-proj" placeholder="P-chem01"></div>
-      <div><label>Title (optional)</label><input id="w-title" placeholder="My dataset …"></div>
-      <div><label>File</label><input id="w-file" type="file"></div>
-    </div>
-    <div class="row-actions">
-      <button class="primary" id="btn-upload">Upload</button>
-      <span class="muted" id="w-msg"></span>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>My Accessible Documents</h2>
-    <div class="row-actions">
-      <button id="btn-refresh">Refresh</button>
-    </div>
-    <table id="docs"><thead>
-      <tr><th>Title</th><th>Project</th><th>Owner</th><th>Uploaded</th><th>Open</th></tr>
-    </thead><tbody></tbody></table>
-  </div>
-
-  <div class="card">
-    <h2>Admin</h2>
-    <div class="row">
-      <div><label>Project ID</label><input id="aproj-id" placeholder="P-chem01"></div>
-      <div><label>Project Name</label><input id="aproj-name" placeholder="Organic Chemistry Study"></div>
-    </div>
-    <div class="row-actions">
-      <button id="btn-create" class="primary">Create / Ensure Project</button>
-      <span id="aproj-msg" class="muted"></span>
-    </div>
-    <hr>
-    <div class="row">
-      <div><label>User Email</label><input id="amem-email" placeholder="user@company.com"></div>
-      <div><label>Level</label>
-        <select id="amem-level"><option>1</option><option>2</option><option>3</option>
-          <option>4</option><option>5</option><option>6</option></select>
+      <div style="min-width:240px;flex:1 1 260px">
+        <label>Project</label>
+        <!-- DROPDOWN for users (auto-populated) -->
+        <select id="w-proj" disabled>
+          <option>Loading…</option>
+        </select>
+      </div>
+      <div style="min-width:240px;flex:2 1 320px">
+        <label>Title (optional)</label>
+        <input id="w-title" placeholder="My dataset …">
+      </div>
+      <div style="min-width:260px;flex:2 1 320px">
+        <label>File</label>
+        <input id="w-file" type="file">
       </div>
     </div>
-    <div class="row-actions">
-      <button id="btn-member">Assign membership to project</button>
-      <button id="btn-sync">Sync file permissions (project)</button>
-      <span id="admin-msg" class="muted"></span>
+    <div style="margin-top:10px" class="row">
+      <button class="primary" onclick="Workspace.upload()">Upload</button>
+      <div id="w-msg" class="hint"></div>
     </div>
   </div>
+
+  <!-- -------- My docs -------- -->
+  <div class="card">
+    <div class="bar">
+      <h2 style="margin:0">My Accessible Documents</h2>
+      <button class="right" onclick="Workspace.loadDocs()">Refresh</button>
+    </div>
+    <table id="docs-table">
+      <thead>
+        <tr><th>Title</th><th>Project</th><th>Owner</th><th>Uploaded</th><th>Open</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- -------- Admin -------- -->
+  <div class="card" id="admin-card" style="display:none">
+    <h2>Admin</h2>
+
+    <!-- Create project -->
+    <div class="card">
+      <h3>Create / Ensure Project</h3>
+      <div class="row">
+        <div style="min-width:220px">
+          <label>Project ID</label>
+          <input id="aproj-id" placeholder="e.g., P-chem01">
+        </div>
+        <div style="min-width:280px;flex:2 1 320px">
+          <label>Project name</label>
+          <input id="aproj-name" placeholder="Organic Chemistry Study">
+        </div>
+      </div>
+      <div style="margin-top:10px" class="row">
+        <button class="primary" onclick="Admin.createProject()">Create / Ensure Project</button>
+        <div id="aproj-msg" class="hint"></div>
+      </div>
+    </div>
+
+    <!-- Membership -->
+    <div class="card">
+      <h3>Assign membership (levels 1–6)</h3>
+      <div class="row">
+        <div style="min-width:240px;flex:1 1 260px">
+          <label>Project</label>
+          <!-- DROPDOWN for Admin membership -->
+          <select id="amem-proj" disabled>
+            <option>Loading…</option>
+          </select>
+        </div>
+        <div style="min-width:260px;flex:2 1 340px">
+          <label>User email</label>
+          <input id="amem-email" placeholder="user@gmail.com">
+        </div>
+        <div>
+          <label>Level</label>
+          <select id="amem-level">
+            <option>1</option><option>2</option><option>3</option>
+            <option>4</option><option>5</option><option>6</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px" class="row">
+        <button class="primary" onclick="Admin.setMembership()">Assign membership</button>
+        <button onclick="Admin.syncPermissions()">Sync file permissions (project)</button>
+        <div id="amem-msg" class="hint"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Tip: Admins can add projects; users select from dropdown. Access is based on level per project.</div>
 </div>
 
 <script>
-/* ====== CONFIG: set these two ====== */
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhcbbOYMqntOfEiRp5ZfofPaVraWoiR5iVInjjzZ9KNTvvcwof-RetUYeAwAKnIknD/exec';
+/* ====== CONFIG: set these ====== */
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhcbbOYMqntOfEiRp5ZfofPaVraWoiR5iVInjjzZ9KNTvvcwof-RetUYeAwAKnIknD/exec'; // <-- paste your Apps Script /exec URL
 const GOOGLE_CLIENT_ID = '360790259501-ch87im4qjptn7st4ic042buj7ihlvbud.apps.googleusercontent.com';
-/* =================================== */
 
+/* ====== State ====== */
 let idToken = null;
+let appState = null;
 
-// --- Google Identity Services sign-in button ---
-window.onload = () => {
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: (resp) => {
-      idToken = resp.credential;
-      document.getElementById('signin').innerHTML = '';
-      initAfterLogin().catch(showErr);
-    }
+/* ====== Small helpers ====== */
+function escapeHtml(str){ return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
   });
-  google.accounts.id.renderButton(
-    document.getElementById('signin'),
-    { theme:'outline', size:'large', text:'signin_with', shape:'pill' }
-  );
-};
-
-async function initAfterLogin(){
-  const s = await getState();
-  document.getElementById('who').innerHTML =
-    `<span class="pill">${s.email}</span> ${s.isAdmin ? '<span class="pill">Admin</span>' : ''}`;
-  wireEvents();
-  await refreshDocs();
+}
+function _projectLabel(p){ return (p.project_name || p.project_id); }
+function _myProjectList(){
+  if (!appState) return [];
+  if (appState.isAdmin) return [...appState.projects];
+  const mine = new Set(appState.myMemberships.map(m => String(m.project_id)));
+  return appState.projects.filter(p => mine.has(String(p.project_id)));
 }
 
-function wireEvents(){
-  byId('btn-refresh').onclick = refreshDocs;
-  byId('btn-upload').onclick = uploadFile;
-  byId('btn-create').onclick = async () => {
-    const project_id = val('aproj-id'), project_name = val('aproj-name');
-    const res = await call('admin.createProject', { project_id, project_name });
-    setHtml('aproj-msg', 'Saved project: ' + res.project_id);
-  };
-  byId('btn-member').onclick = async () => {
-    const project_id = val('aproj-id'), user_email = val('amem-email').toLowerCase();
-    const level = Number(val('amem-level'));
-    await call('admin.setMembership', { project_id, user_email, level });
-    setHtml('admin-msg', 'Membership saved.');
-  };
-  byId('btn-sync').onclick = async () => {
-    const project_id = val('aproj-id');
-    if (!project_id) return setHtml('admin-msg', 'Enter a project id first.');
-    const res = await call('admin.syncPermissions', { project_id });
-    setHtml('admin-msg', `Synced ${res.count} files.`);
-  };
+/* ====== Populate dropdowns ====== */
+function populateWorkspaceProjects(){
+  const sel = document.getElementById('w-proj');
+  if (!sel) return;
+  const list = _myProjectList().sort((a,b)=>_projectLabel(a).localeCompare(_projectLabel(b)));
+  sel.innerHTML = '';
+  if (list.length === 0){
+    sel.disabled = true;
+    sel.appendChild(new Option('No projects assigned',''));
+    return;
+  }
+  sel.disabled = false;
+  sel.appendChild(new Option('Select project…',''));
+  list.forEach(p => sel.appendChild(new Option(_projectLabel(p), p.project_id)));
+}
+function populateAdminProjectSelect(){
+  const sel = document.getElementById('amem-proj');
+  if (!sel) return;
+  const list = (appState?.projects || []).slice().sort((a,b)=>_projectLabel(a).localeCompare(_projectLabel(b)));
+  sel.innerHTML = '';
+  sel.appendChild(new Option('Select project…',''));
+  list.forEach(p => sel.appendChild(new Option(_projectLabel(p), p.project_id)));
+  sel.disabled = false;
 }
 
-// ---------- Backend calls ----------
-async function call(method, payload) {
+/* ====== Backend call (no credentials; endpoint is public "Anyone") ====== */
+async function call(method, payload){
   const res = await fetch(WEB_APP_URL, {
     method: 'POST',
-    mode: 'cors',                                 // ok to keep
-    // IMPORTANT: no credentials here
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids preflight
+    headers: { 'Content-Type':'text/plain;charset=utf-8' },
     body: JSON.stringify({ method, idToken, payload })
   });
-  if (!res.ok) {
+  if (!res.ok){
     const t = await res.text().catch(()=> '');
     throw new Error(`${res.status} ${res.statusText} ${t}`);
   }
   return res.json();
 }
 
-
-async function getState(){ return call('getState'); }
-
-async function refreshDocs(){
-  const resp = await call('listAllowedDocuments');
-  const rows = (resp && resp.data) || [];
-  const tb = document.querySelector('#docs tbody');
-  tb.innerHTML = '';
-  rows.sort((a,b) => new Date(b.uploaded_at) - new Date(a.uploaded_at));
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    const link = `https://drive.google.com/uc?export=download&id=${r.drive_file_id}`;
-    tr.innerHTML =
-      `<td>${esc(r.title||'')}</td>
-       <td>${esc(String(r.project_id||''))}</td>
-       <td>${esc(String(r.owner_email||''))}</td>
-       <td>${new Date(r.uploaded_at).toLocaleString()}</td>
-       <td><a target="_blank" rel="noopener" href="${link}">Download</a></td>`;
-    tb.appendChild(tr);
+/* ====== GIS sign-in ====== */
+window.onload = () => {
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: resp => onSignIn(resp.credential)
   });
+  google.accounts.id.renderButton(
+    document.getElementById('signin'),
+    { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' }
+  );
+};
+function onSignIn(token){
+  idToken = token;
+  document.getElementById('signin').style.display = 'none';
+  refreshState();
 }
 
-async function uploadFile(){
-  const project_id = val('w-proj');
-  const title = val('w-title');
-  const input = byId('w-file');
-  const file = input.files[0];
-  if (!project_id) return setHtml('w-msg','Enter a Project ID first.');
-  if (!file) return setHtml('w-msg','Choose a file to upload.');
-  try {
-    const b64 = await fileToBase64(file);
-    const res = await call('upload', {
-      project_id, title,
-      b64, mimeType: file.type, originalName: file.name
-    });
-    setHtml('w-msg', `Uploaded. <a href="${res.webViewLink}" target="_blank" rel="noopener">Open in Drive</a>`);
-    input.value = '';
-    await refreshDocs();
-  } catch (e) {
-    setHtml('w-msg', 'Error: ' + e.message);
+/* ====== State load ====== */
+async function refreshState(){
+  try{
+    const state = await call('getState', {});
+    appState = state;
+
+    // top bar
+    const info = document.getElementById('user-info');
+    info.style.display = 'inline-block';
+    info.innerHTML = `${escapeHtml(state.email)} ${state.isAdmin ? '<span class="pill" style="margin-left:8px;background:#234;">Admin</span>' : ''}`;
+
+    // Admin card visibility
+    document.getElementById('admin-card').style.display = state.isAdmin ? 'block' : 'none';
+
+    // populate dropdowns and docs
+    populateWorkspaceProjects();
+    populateAdminProjectSelect();
+    Workspace.loadDocs();
+  }catch(e){
+    alert('Failed to load state: ' + e.message);
   }
 }
 
-// ---------- small helpers ----------
-const byId = (id)=>document.getElementById(id);
-const val = (id)=>byId(id).value.trim();
-const setHtml = (id,html)=>{ byId(id).innerHTML = html; };
-const esc = (s)=>String(s).replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
-function fileToBase64(file){
-  return new Promise((resolve,reject)=>{
-    const fr = new FileReader();
-    fr.onload = ()=>resolve(fr.result);
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
-}
-function showErr(e){ setHtml('msg','Error: '+(e?.message||e)); }
+/* ====== Admin actions ====== */
+const Admin = {
+  async createProject(){
+    const project_id = document.getElementById('aproj-id').value.trim();
+    const project_name = document.getElementById('aproj-name').value.trim();
+    const msg = document.getElementById('aproj-msg');
+    msg.textContent = '';
+    try{
+      const r = await call('admin.createProject', { project_id, project_name });
+      msg.textContent = 'Saved: ' + r.project_id;
+      // refresh so the dropdowns include the new project
+      await refreshState();
+    }catch(e){
+      msg.textContent = 'Error: ' + e.message;
+    }
+  },
+  async setMembership(){
+    const project_id = document.getElementById('amem-proj').value.trim();
+    const user_email = document.getElementById('amem-email').value.trim().toLowerCase();
+    const level = Number(document.getElementById('amem-level').value);
+    const msg = document.getElementById('amem-msg');
+    msg.textContent = '';
+    if (!project_id){ msg.textContent = 'Select a project.'; return; }
+    try{
+      await call('admin.setMembership', { project_id, user_email, level });
+      msg.textContent = 'Membership saved.';
+      await refreshState();
+    }catch(e){
+      msg.textContent = 'Error: ' + e.message;
+    }
+  },
+  async syncPermissions(){
+    const project_id = document.getElementById('amem-proj').value.trim();
+    const msg = document.getElementById('amem-msg');
+    msg.textContent = '';
+    if (!project_id){ msg.textContent = 'Select a project first.'; return; }
+    try{
+      const r = await call('admin.syncPermissions', { project_id });
+      msg.textContent = `Synced ${r.count} files.`;
+    }catch(e){
+      msg.textContent = 'Error: ' + e.message;
+    }
+  }
+};
+
+/* ====== Workspace actions ====== */
+const Workspace = {
+  async upload(){
+    const project_id = document.getElementById('w-proj').value.trim();
+    const title = document.getElementById('w-title').value.trim();
+    const inp = document.getElementById('w-file');
+    const file = inp.files[0];
+    const msg = document.getElementById('w-msg');
+    msg.textContent = '';
+
+    if (!project_id){ msg.textContent = 'Select a project first.'; return; }
+    if (!file){ msg.textContent = 'Choose a file to upload.'; return; }
+
+    try{
+      const b64 = await fileToBase64(file);
+      const r = await call('upload', {
+        project_id, title, b64, mimeType: file.type, originalName: file.name
+      });
+      msg.innerHTML = `Uploaded. <a href="${r.webViewLink}" target="_blank" rel="noopener">Open in Drive</a>`;
+      inp.value = ''; document.getElementById('w-title').value = '';
+      Workspace.loadDocs();
+    }catch(e){
+      msg.textContent = 'Error: ' + e.message;
+    }
+  },
+
+  async loadDocs(){
+    try{
+      const rows = await call('listAllowedDocuments', {});
+      const tbody = document.querySelector('#docs-table tbody');
+      tbody.innerHTML = '';
+      rows.sort((a,b)=> new Date(b.uploaded_at) - new Date(a.uploaded_at));
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const link = `https://drive.google.com/uc?export=download&id=${r.drive_file_id}`;
+        tr.innerHTML = `
+          <td>${escapeHtml(r.title || '')}</td>
+          <td>${escapeHtml(String(r.project_id || ''))}</td>
+          <td>${escapeHtml(String(r.owner_email || ''))}</td>
+          <td>${new Date(r.uploaded_at).toLocaleString()}</td>
+          <td><a target="_blank" rel="noopener" href="${link}">Download</a></td>`;
+        tbody.appendChild(tr);
+      });
+    }catch(e){
+      console.error(e);
+    }
+  }
+};
 </script>
 </body>
 </html>
-
-
-
-
-
