@@ -290,6 +290,7 @@ const Admin = {
 };
 
 /* ====== Workspace actions ====== */
+<script>
 const Workspace = {
   async upload(){
     const project_id = document.getElementById('w-proj').value.trim();
@@ -317,26 +318,33 @@ const Workspace = {
 
   async loadDocs(){
     try{
-      const rows = await call('listAllowedDocuments', {});
+      const resp = await call('listAllowedDocuments', {});
+      // Unwrap the array from {ok, data}
+      const rows = Array.isArray(resp) ? resp : (resp?.data ?? []);
+
       const tbody = document.querySelector('#docs-table tbody');
       tbody.innerHTML = '';
-      rows.sort((a,b)=> new Date(b.uploaded_at) - new Date(a.uploaded_at));
-      rows.forEach(r => {
-        const tr = document.createElement('tr');
-        const link = `https://drive.google.com/uc?export=download&id=${r.drive_file_id}`;
-        tr.innerHTML = `
-          <td>${escapeHtml(r.title || '')}</td>
-          <td>${escapeHtml(String(r.project_id || ''))}</td>
-          <td>${escapeHtml(String(r.owner_email || ''))}</td>
-          <td>${new Date(r.uploaded_at).toLocaleString()}</td>
-          <td><a target="_blank" rel="noopener" href="${link}">Download</a></td>`;
-        tbody.appendChild(tr);
-      });
+
+      rows
+        .slice()
+        .sort((a,b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0))
+        .forEach(r => {
+          const tr = document.createElement('tr');
+          const link = `https://drive.google.com/uc?export=download&id=${r.drive_file_id}`;
+          tr.innerHTML = `
+            <td>${escapeHtml(r.title || '')}</td>
+            <td>${escapeHtml(String(r.project_id || ''))}</td>
+            <td>${escapeHtml(String(r.owner_email || ''))}</td>
+            <td>${r.uploaded_at ? new Date(r.uploaded_at).toLocaleString() : ''}</td>
+            <td><a target="_blank" rel="noopener" href="${link}">Download</a></td>`;
+          tbody.appendChild(tr);
+        });
     }catch(e){
-      console.error(e);
+      console.error('loadDocs failed:', e);
     }
   }
 };
 </script>
 </body>
 </html>
+
